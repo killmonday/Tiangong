@@ -15,6 +15,7 @@ import (
 	"syscall"
 	"time"
 	"unsafe"
+	"github.com/kardianos/service"
 )
 
 /*
@@ -29,23 +30,31 @@ import "C"
 //go:embed ctrl.exe RTC.sys
 var embeddedFiles embed.FS
 
-func main() {
-	// 启动时检查并创建系统服务
-	err := checkAndCreateService()
-	if err != nil {
-		log.Printf("系统服务检查失败: %v", err)
-	} else {
-		log.Println("系统服务检查完成")
-	}
 
-	http.HandleFunc("/", handleRequest)
+var (
+    kernel32DLL       = syscall.NewLazyDLL("kernel32.dll")
+    outputDebugString = kernel32DLL.NewProc("OutputDebugStringW")
+)
 
-	fmt.Println("启动锁屏服务器，监听端口 18789...")
-	err = http.ListenAndServe(":18789", nil)
-	if err != nil {
-		log.Fatal("服务器启动失败: ", err)
-	}
+// 用 MyService 实现 service.Service 接口
+type MyService struct{}
+ 
+func (m *MyService) Start(s service.Service) error {
+    go m.run()
+    return nil
 }
+ 
+func (m *MyService) run() {
+    // 在这里编写服务逻辑
+	main_server()
+}
+ 
+func (m *MyService) Stop(s service.Service) error {
+    // 停止服务的逻辑
+    fmt.Printf("cai guai...")
+    return nil
+}
+
 
 func handleRequest(w http.ResponseWriter, r *http.Request) {
 	// 只处理POST请求
@@ -346,4 +355,58 @@ func executeCtrlCommand() error {
 
 	log.Printf("ctrl.exe命令执行成功: %s", out.String())
 	return nil
+}
+
+func main_server() {
+	// 启动时检查并创建系统服务
+	err := checkAndCreateService()
+	if err != nil {
+		log.Printf("系统服务检查失败: %v", err)
+	} else {
+		log.Println("系统服务检查完成")
+	}
+
+	http.HandleFunc("/", handleRequest)
+
+	fmt.Println("启动锁屏服务器，监听端口 18789...")
+	err = http.ListenAndServe(":18789", nil)
+	if err != nil {
+		log.Fatal("服务器启动失败: ", err)
+	}
+}
+
+func main() {
+    // 服务的名称、显示名称和描述
+    svcConfig := &service.Config{
+        Name:        "Microsft JZ",
+        DisplayName: "Microsft JZ Service",
+        Description: "DS Data.",
+    }
+ 
+    prg := &MyService{}
+    s, err := service.New(prg, svcConfig)
+    if err != nil {
+        log.Fatal(err)
+    }
+ 
+    // 可以通过以下命令来启动、停止、重启或卸载服务：
+    // service.exe install
+    // service.exe start
+    // service.exe stop
+    // service.exe restart
+    // service.exe uninstall
+ 
+    // 通过以下代码来控制服务的启动和停止
+    if len(os.Args) > 1 {
+        err = service.Control(s, os.Args[1])
+        if err != nil {
+            log.Fatal(err)
+        }
+        return
+    }
+ 
+    err = s.Run()
+    if err != nil {
+        log.Fatal(err)
+    }
 }

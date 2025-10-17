@@ -1,4 +1,4 @@
-module lockscreen-server
+module PerformanceCounter
 
 go 1.20
 

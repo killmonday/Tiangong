@@ -68,7 +68,7 @@ PC端程序已在Win7/Win10/Win11测试，功能正常。但是电脑上装了�
 
 下面介绍一下部分特色的功能设计。
 
-因为是家长控制软件，本次的敌手是熊孩子，为了对抗熊孩子，需要高权限、自启动、一定的自身防护、隐蔽等，其实可以当作一个小马子来写^_^也没毛病。一开始，我的设想是到rootkit，后来一想，熊孩子一重装电脑不就废了。然后想到直接uefi bootkit，写到主板上重装都没用。
+因为是家长控制软件，本次的敌手是熊孩子，为了对抗熊孩子，需要高权限、自启动、一定的自身防护、隐蔽等，其实可以当作一个小马子来写^_^也没毛病。一开始，我的设想是到rootkit，后来一想，熊孩子一重装电脑不就废了。然后想到直接uefi bootkit，写到主板上，重装都没用。这么一整，感觉整个对抗的道路无穷无尽，是在用户层面还是内核，怎么隐蔽，保护进程、免杀、hook劫持快捷键，都太麻烦了，这么搞简直不是和熊孩子对抗，是和杀软对抗。最后就简单点，别TM bootkit了哈哈，先做一稿再说。
 
 
 
@@ -82,7 +82,7 @@ agent使用golang编写，借用"github.com/kardianos/service"库编写为Window
 
 ①首先对windows系统进行了系统层面的锁屏
 
-②其次还使用自定义的窗体程序强制劫持屏幕，窗体显示白屏，无法被其他窗体覆盖，让用户无法有效操控电脑。这个白屏窗体程序（SmartFronts.exe），源代码在**XXXX**
+②其次还使用自定义的窗体程序强制劫持屏幕，窗体显示白屏，无法被其他窗体覆盖，让用户无法有效操控电脑。这个白屏窗体程序（SmartFronts.exe），源代码在**https://github.com/killmonday/whiteScreen**
 
 ③同时劫持了ALT+F4快捷键，防止窗体被熊孩子关闭。
 
@@ -108,10 +108,16 @@ agent使用golang编写，借用"github.com/kardianos/service"库编写为Window
 
 - 进程保护
 
-使用了PPL轻量级进程保护，需要内核驱动才能搞，这里用到的ctrl.exe程序就是https://github.com/itm4n/PPLcontrol编译的，RTC.sys在https://github.com/RedCursorSecurityConsulting/PPLKiller/tree/master/driver。PPL在win7下失效，因为win7还没有这个机制，所以如果你的电脑是win7系统，目前只能靠隐蔽。如果被发现了就可以被干掉。这里还不想上升到内核去hook啊、改EPROCESS结构体之类的，太复杂也容易坏。
+使用了PPL轻量级进程保护，需要内核驱动才能搞，这里用到的ctrl.exe程序就是https://github.com/itm4n/PPLcontrol 编译的，RTC.sys在https://github.com/RedCursorSecurityConsulting/PPLKiller/tree/master/driver 。PPL在win7下失效，因为win7还没有这个机制，所以如果你的电脑是win7系统，目前只能靠隐蔽。如果被发现了就可以被干掉。这里还不想上升到内核去hook啊、改EPROCESS结构体之类的，太复杂也容易坏。
 
 
 
 - 用户态运行进程
 
 agent一旦以服务运行就是system权限了，没想到system身份的程序无法锁屏因为这是用户空间的事情、运行了GUI窗体也是后台运行不显示。只能偷一下console用户的token，以console用户的身份去运行进程就ok了。
+
+
+
+- 安卓控制端app
+
+直接pua ai给我写了一个，用着还行吧。源代码：https://github.com/killmonday/suoping
